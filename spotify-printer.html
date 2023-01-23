@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet" />
+    <title>Spotify Printer</title>
+    <link rel="icon" type="image/x-icon" href="images/spotify-logo.ico" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #65d46e;
+        color: #000;
+        margin: 50px 15% 200px 15%;
+        font-family: 'Varela Round', sans-serif;
+        font-size: 15px;
+      }
+
+      header {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        align-items: center;
+      }
+
+      #logo-wrapper {
+        height: 32px;
+      }
+
+      #logo {
+        height: 100%;
+      }
+
+      main {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      a {
+        color: #555;
+        text-decoration: none;
+      }
+
+      button {
+        background: #000;
+        color: #fff;
+        font-family: 'Varela Round', sans-serif;
+        padding: 2px;
+      }
+
+      hr {
+        border: 0.1px solid #000;
+      }
+
+      #search-form {
+        display: flex;
+        flex-direction: column;
+        align-items: baseline;
+        gap: 3px;
+      }
+
+      #search-form input,
+      #search-form select {
+        width: 30%;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div id="logo-wrapper">
+        <img id="logo" src="images/spotify-logo.ico" alt="spotify-logo" />
+      </div>
+      <h1>Spotify Printer: Print spotify titles</h1>
+    </header>
+    <main>
+      <div id="instructors">
+        <p>
+          Get an <b>OAuth Token</b> from
+          <a href="https://developer.spotify.com/console/get-current-user-top-artists-and-tracks">
+            developer.spotify.com/console/get-current-user-top-artists-and-tracks
+          </a>
+        </p>
+        <p>
+          Search playlists on
+          <a href="https://open.spotify.com">open.spotify.com</a>
+        </p>
+      </div>
+      <div id="search-form">
+        <input id="token" type="text" placeholder="OAuth Token" />
+        <input id="playlist-id" type="text" placeholder="Playlist Id" />
+        <input id="limit" type="number" placeholder="Limit" step="10" min="10" max="100" />
+        <input id="offset" type="number" placeholder="Offset" step="100" min="0" />
+        <select id="print-type">
+          <option value="playlist">Playlist</option>
+          <option value="top-artists">Top Artists</option>
+          <option value="top-tracks">Top Tracks</option>
+        </select>
+        <select id="time-range">
+          <option value="long_term">Long Term</option>
+          <option value="medium_term">Medium Term</option>
+          <option value="short_term">Short Term</option>
+        </select>
+        <select id="separator-type">
+          <option value=";">Separator (;)</option>
+          <option value="->">Separator (->)</option>
+          <option value=" ">None</option>
+        </select>
+        <button id="print-button">PRINT</button>
+      </div>
+      <br />
+      <div id="list-board" style="display: none">
+        <p>You can also check the developer console. (F12->Console)</p>
+        <button id="copy-button">COPY</button>
+        <br />
+        <hr />
+        <p id="list-board-text"></p>
+        <hr />
+      </div>
+    </main>
+    <footer>
+      <p id="footer-text"></p>
+    </footer>
+
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.3/jquery.js"
+      integrity="sha512-nO7wgHUoWPYGCNriyGzcFwPSF+bPDOR+NvtOYy2wMcWkrnCNPKBcFEkU80XIN14UVja0Gdnff9EmydyLlOL7mQ=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script>
+      // https://developer.spotify.com/console/get-playlist-tracks
+      // sample playlist: 37i9dQZF1DXcBWIGoYBM5M
+
+      /* APP START */
+      (function (self) {
+        const author = 'github.com/aliakgul';
+
+        const selectors = {
+          instructors: '#instructors',
+          searchForm: '#search-form',
+          token: '#token',
+          playlistId: '#playlist-id',
+          limit: '#limit',
+          offset: '#offset',
+          printType: '#print-type',
+          timeRange: '#time-range',
+          separatorType: '#separator-type',
+          printButton: '#print-button',
+          listBoard: '#list-board',
+          copyButton: '#copy-button',
+          boardText: '#list-board-text',
+          footerText: '#footer-text',
+        };
+
+        let elements = {};
+
+        let fetchedData = [];
+
+        self.init = () => {
+          self.setFooterContent();
+          self.setEvents();
+        };
+
+        self.setFooterContent = () => {
+          self.readElements();
+
+          const footerText = `<a href="https://${author}">${author}</a> ` + new Date().getFullYear() + '&copy;';
+
+          elements.$footerText.html(footerText);
+        };
+
+        self.readElements = () => {
+          elements = {
+            $instructors: $(selectors.instructors),
+            $searchForm: $(selectors.searchForm),
+            $token: $(selectors.token),
+            $playlistId: $(selectors.playlistId),
+            $limit: $(selectors.limit),
+            $offset: $(selectors.offset),
+            $printType: $(selectors.printType),
+            $timeRange: $(selectors.timeRange),
+            $separatorType: $(selectors.separatorType),
+            $printButton: $(selectors.printButton),
+            $listBoard: $(selectors.listBoard),
+            $copyButton: $(selectors.copyButton),
+            $boardText: $(selectors.boardText),
+            $footerText: $(selectors.footerText),
+          };
+        };
+
+        self.setEvents = () => {
+          $(selectors.printButton).click(() => {
+            self.sendRequest();
+          });
+
+          $(selectors.copyButton).click(() => {
+            self.copyToClipboard();
+          });
+        };
+
+        self.sendRequest = () => {
+          self.readElements();
+
+          token = elements.$token.val();
+          playlistId = elements.$playlistId.val();
+          limit = elements.$limit.val() || 50;
+          offset = elements.$offset.val() || 0;
+          printType = elements.$printType.val();
+          timeRange = elements.$timeRange.val();
+          separatorType = elements.$separatorType.val();
+
+          const baseUrl = 'https://api.spotify.com/v1';
+          const baseParameters = `&limit=${limit}&offset=${offset}`;
+          const urlList = {
+            playlist: `${baseUrl}/playlists/${playlistId}/tracks?fields=items(track(name%2C%20artists(name)))${baseParameters}`,
+            'top-artists': `${baseUrl}/me/top/artists?time_range=${timeRange}${baseParameters}`,
+            'top-tracks': `${baseUrl}/me/top/tracks?time_range=${timeRange}${baseParameters}`,
+          };
+
+          if (!token) {
+            alert('Please enter a token.');
+            return;
+          } else if (printType === 'playlist' && !playlistId) {
+            alert('Please enter playlist id.');
+            return;
+          }
+
+          $.ajax({
+            url: urlList[printType],
+            beforeSend: function (xhr) {
+              xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            },
+            success: function (data) {
+              fetchedData = ((data || {}).items || []).map((item) => {
+                if (printType === 'top-artists') {
+                  return item.name;
+                }
+
+                if (printType === 'playlist') {
+                  item = item.track;
+                }
+
+                const { artists, name } = item;
+
+                return artists.map((artist) => artist.name).join(', ') + separatorType + name;
+              });
+
+              self.updateBoard();
+            },
+          });
+        };
+
+        self.updateBoard = () => {
+          if (fetchedData) {
+            console.log(fetchedData.join('\n'));
+
+            elements.$boardText.html(
+              fetchedData.map((data) => {
+                return data + '<br />';
+              })
+            );
+            elements.$listBoard.css('display', 'unset');
+          }
+        };
+
+        self.copyToClipboard = () => {
+          navigator.clipboard.writeText(fetchedData.join('\n'));
+        };
+
+        self.init();
+      })({});
+      /* APP END */
+    </script>
+  </body>
+</html>
